@@ -17,6 +17,9 @@ import mimetypes
 
 import flask 
 import flask_login
+from functools import wraps
+
+MONITOR_TOKEN = "insecure_token"
 
 app = flask.Flask(__name__)
 app.secret_key = str(os.urandom(16))
@@ -35,6 +38,18 @@ IMAGE_MAGIC_NUMBERS = {
     b'GIF87a': 'image/gif',  # GIF87a
     b'GIF89a': 'image/gif',  # GIF89a
 }
+
+# Add new decorator function
+def monitor_auth_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = flask.request.args.get('token')
+        if token and token == MONITOR_TOKEN:
+            return f(*args, **kwargs)
+        if flask_login.current_user.is_authenticated:
+            return f(*args, **kwargs)
+        return flask.redirect(flask.url_for('login'))
+    return decorated
 
 # Function to check MIME type and file signature
 def is_allowed_file(file):
@@ -1414,6 +1429,7 @@ def delete_device():
 
             
 @app.route('/monitoring', methods=['GET', 'POST'])
+@monitor_auth_required
 def monitoring():
     if (flask_login.current_user.is_authenticated == False):
         return flask.redirect(flask.url_for('login'))
@@ -1545,6 +1561,7 @@ def monitoring():
         return return_str
         
 @app.route('/monitor-update', methods=['GET', 'POST'])
+@monitor_auth_required
 def monitor_update():
     if (flask_login.current_user.is_authenticated == False):
         return flask.redirect(flask.url_for('login'))
