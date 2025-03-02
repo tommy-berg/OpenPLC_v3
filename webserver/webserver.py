@@ -18,6 +18,7 @@ import mimetypes
 import flask 
 import flask_login
 from functools import wraps
+from flask_cors import CORS
 
 MONITOR_TOKEN = "insecure_token"
 
@@ -25,6 +26,12 @@ app = flask.Flask(__name__)
 app.secret_key = str(os.urandom(16))
 login_manager = flask_login.LoginManager()
 login_manager.init_app(app)
+
+# Add after app = Flask(__name__)
+CORS(app, resources={
+    r"/monitoring": {"origins": "*"},
+    r"/monitor-update": {"origins": "*"}
+})
 
 openplc_runtime = openplc.runtime()
 
@@ -45,7 +52,14 @@ def monitor_auth_required(f):
     def decorated(*args, **kwargs):
         token = flask.request.args.get('token')
         if token and token == MONITOR_TOKEN:
-            return f(*args, **kwargs)
+            response = f(*args, **kwargs)
+            # Add CORS headers
+            if isinstance(response, str):
+                response = flask.Response(response)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, POST'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
         return flask.Response('Authentication required', 401)
     return decorated
 
