@@ -46,9 +46,7 @@ def monitor_auth_required(f):
         token = flask.request.args.get('token')
         if token and token == MONITOR_TOKEN:
             return f(*args, **kwargs)
-        if flask_login.current_user.is_authenticated:
-            return f(*args, **kwargs)
-        return flask.redirect(flask.url_for('login'))
+        return flask.Response('Authentication required', 401)
     return decorated
 
 # Function to check MIME type and file signature
@@ -1431,153 +1429,73 @@ def delete_device():
 @app.route('/monitoring', methods=['GET', 'POST'])
 @monitor_auth_required
 def monitoring():
-    if (flask_login.current_user.is_authenticated == False):
-        return flask.redirect(flask.url_for('login'))
-    else:
-        if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
-        return_str = pages.w3_style + pages.monitoring_head + draw_top_div()
-        return_str += """
-            <div class='main'>
-                <div class='w3-sidebar w3-bar-block' style='width:250px; background-color:#1F1F1F'>
-                    <br>
-                    <br>
-                    <a href="dashboard" class="w3-bar-item w3-button"><img src="/static/home-icon-64x64.png" alt="Dashboard" style="width:47px;height:32px;padding:0px 15px 0px 0px;float:left"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Dashboard</p></a>
-                    <a href='programs' class='w3-bar-item w3-button'><img src='/static/programs-icon-64x64.png' alt='Programs' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Programs</p></a>
-                    <a href='modbus' class='w3-bar-item w3-button'><img src='/static/modbus-icon-512x512.png' alt='Modbus' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Slave Devices</p></a>
-                    <a href="monitoring" class="w3-bar-item w3-button" style="background-color:#0066FC; padding-right:0px;padding-top:0px;padding-bottom:0px"><img src="/static/monitoring-icon-64x64.png" alt="Monitoring" style="width:47px;height:39px;padding:7px 15px 0px 0px;float:left"><img src="/static/arrow.png" style="width:17px;height:49px;padding:0px 0px 0px 0px;margin: 0px 0px 0px 0px; float:right"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 10px 0px 0px 0px'>Monitoring</p></a>                    
-                    <a href='hardware' class='w3-bar-item w3-button'><img src='/static/hardware-icon-980x974.png' alt='Hardware' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Hardware</p></a>
-                    <a href='users' class='w3-bar-item w3-button'><img src='/static/users-icon-64x64.png' alt='Users' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Users</p></a>
-                    <a href='settings' class='w3-bar-item w3-button'><img src='/static/settings-icon-64x64.png' alt='Settings' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Settings</p></a>
-                    <a href='logout' class='w3-bar-item w3-button'><img src='/static/logout-icon-64x64.png' alt='Logout' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Logout</p></a>
-                    <br>
-                    <br>"""
-        return_str += draw_status()
-        return_str += """
-        </div>
-            <div style="margin-left:320px; margin-right:70px">
-                <div style="w3-container">
-                    <br>
-                    <h2>Monitoring</h2>
-                    <form class="form-inline">
-                        <label for="refresh_rate">Refresh Rate (ms):</label>
-                        <input type="text" id="refresh_rate" value="500" name="refresh_rate">
-                        <button type="button" onclick="updateRefreshRate()">Update</button>
-                    </form>
-                    <br>
-                    <div id='monitor_table'>
-                        <table>
-                            <col width="50"><col width="10"><col width="10"><col width="10"><col width="100">
-                            <tr style='background-color: white'>
-                                <th>Point Name</th><th>Type</th><th>Location</th><th>Write</th><th>Value</th>
-                            </tr>"""
-        
-        if (openplc_runtime.status() == "Running"):
-            #Check Modbus Server status
-            modbus_enabled = False
-            modbus_port_cfg = 502
-            database = "openplc.db"
-            conn = create_connection(database)
-            if (conn != None):
-                try:
-                    print("Openning database")
-                    cur = conn.cursor()
-                    cur.execute("SELECT * FROM Settings")
-                    rows = cur.fetchall()
-                    cur.close()
-                    conn.close()
+    if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
+    return_str = pages.w3_style + pages.monitoring_head + draw_top_div()
+    return_str += """
+        <div class='main'>
+            <div class='w3-sidebar w3-bar-block' style='width:250px; background-color:#1F1F1F'>
+                <br>
+                <br>
+                <a href="dashboard" class="w3-bar-item w3-button"><img src="/static/home-icon-64x64.png" alt="Dashboard" style="width:47px;height:32px;padding:0px 15px 0px 0px;float:left"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Dashboard</p></a>
+                <a href='programs' class='w3-bar-item w3-button'><img src='/static/programs-icon-64x64.png' alt='Programs' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Programs</p></a>
+                <a href='modbus' class='w3-bar-item w3-button'><img src='/static/modbus-icon-512x512.png' alt='Modbus' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Slave Devices</p></a>
+                <a href="monitoring" class="w3-bar-item w3-button" style="background-color:#0066FC; padding-right:0px;padding-top:0px;padding-bottom:0px"><img src="/static/monitoring-icon-64x64.png" alt="Monitoring" style="width:47px;height:39px;padding:7px 15px 0px 0px;float:left"><img src="/static/arrow.png" style="width:17px;height:49px;padding:0px 0px 0px 0px;margin: 0px 0px 0px 0px; float:right"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 10px 0px 0px 0px'>Monitoring</p></a>                    
+                <a href='hardware' class='w3-bar-item w3-button'><img src='/static/hardware-icon-980x974.png' alt='Hardware' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Hardware</p></a>
+                <a href='users' class='w3-bar-item w3-button'><img src='/static/users-icon-64x64.png' alt='Users' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Users</p></a>
+                <a href='settings' class='w3-bar-item w3-button'><img src='/static/settings-icon-64x64.png' alt='Settings' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Settings</p></a>
+                <a href='logout' class='w3-bar-item w3-button'><img src='/static/logout-icon-64x64.png' alt='Logout' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Logout</p></a>
+                <br>
+                <br>"""
+    return_str += draw_status()
+    return_str += """
+    </div>
+        <div style="margin-left:320px; margin-right:70px">
+            <div style="w3-container">
+                <br>
+                <h2>Monitoring</h2>
+                <form class="form-inline">
+                    <label for="refresh_rate">Refresh Rate (ms):</label>
+                    <input type="text" id="refresh_rate" value="500" name="refresh_rate">
+                    <button type="button" onclick="updateRefreshRate()">Update</button>
+                </form>
+                <br>
+                <div id='monitor_table'>
+                    <table>
+                        <col width="50"><col width="10"><col width="10"><col width="10"><col width="100">
+                        <tr style='background-color: white'>
+                            <th>Point Name</th><th>Type</th><th>Location</th><th>Write</th><th>Value</th>
+                        </tr>"""
+    
+    if (openplc_runtime.status() == "Running"):
+        #Check Modbus Server status
+        modbus_enabled = False
+        modbus_port_cfg = 502
+        database = "openplc.db"
+        conn = create_connection(database)
+        if (conn != None):
+            try:
+                print("Openning database")
+                cur = conn.cursor()
+                cur.execute("SELECT * FROM Settings")
+                rows = cur.fetchall()
+                cur.close()
+                conn.close()
 
-                    for row in rows:
-                        if (row[0] == "Modbus_port"):
-                            if (row[1] != "disabled"):
-                                modbus_enabled = True
-                                modbus_port_cfg = int(row[1])
-                            else:
-                                modbus_enabled = False
-            
-                except Error as e:
-                    return "error connecting to the database" + str(e)
-            else:
-                return "Error opening DB"
-            
-            if modbus_enabled == True:
-                monitor.start_monitor(modbus_port_cfg)
-                data_index = 0
-                for debug_data in monitor.debug_vars:
-                    return_str += '<tr style="height:60px">' # onclick="document.location=\'point-info?table_id=' + str(data_index) + '\'">'
-                    return_str += '<td>' + debug_data.name + '</td><td>' + debug_data.type + '</td><td>' + debug_data.location + '</td><td>'
-                    if (debug_data.location.find('QX') != -1):
-                        return_str += '<button class="write-button true" onclick="fetch(\'/point-write?value=1&address=' + str(debug_data.location) + '\')">true</button>'
-                        return_str += '<button class="write-button false" onclick="fetch(\'/point-write?value=0&address=' + str(debug_data.location) + '\')">false</button>'
-                    return_str += '</td><td valign="middle">'
-                    if (debug_data.type == 'BOOL'):
-                        if (debug_data.value == 0):
-                            return_str += '<img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</td>'
+                for row in rows:
+                    if (row[0] == "Modbus_port"):
+                        if (row[1] != "disabled"):
+                            modbus_enabled = True
+                            modbus_port_cfg = int(row[1])
                         else:
-                            return_str += '<img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</td>'
-                    elif (debug_data.type == 'UINT'):
-                        percentage = (debug_data.value*100)/65535
-                        return_str += '<div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:' + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></td>'
-                    elif (debug_data.type == 'INT'):
-                        percentage = ((debug_data.value + 32768)*100)/65535
-                        debug_data.value = ctypes.c_short(debug_data.value).value
-                        return_str += '<div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:' + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></td>'
-                    elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
-                        return_str += "{:10.4f}".format(debug_data.value)
-                    else:
-                        return_str += str(debug_data.value)
-                    return_str += '</tr>'
-                    data_index += 1
-                return_str += """
-                        </table>
-                    </div>
-                    <input type='hidden' id='modbus_port_cfg' name='modbus_port_cfg' value='""" + str(modbus_port_cfg) + "'>"
-                return_str += pages.monitoring_tail
-            
-            #Modbus Server is not enabled
-            else:
-                return_str += """
-                        </table>
-                        <br>
-                        <br>
-                        <h2>You must enable Modbus Server on Settings to be able to monitor your program!</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </body>
-</html>"""
-            
-        #Runtime is not running        
+                            modbus_enabled = False
+        
+            except Error as e:
+                return "error connecting to the database" + str(e)
         else:
-            return_str += """
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </body>
-</html>"""
-
-        return return_str
+            return "Error opening DB"
         
-@app.route('/monitor-update', methods=['GET', 'POST'])
-@monitor_auth_required
-def monitor_update():
-    if (flask_login.current_user.is_authenticated == False):
-        return flask.redirect(flask.url_for('login'))
-    else:
-        #if (openplc_runtime.status() == "Compiling"): return 'OpenPLC is compiling new code. Please wait'
-        return_str = """
-                        <table>
-                            <col width="50"><col width="10"><col width="10"><col width="10"><col width="100">
-                            <tr style='background-color: white'>
-                                <th>Point Name</th><th>Type</th><th>Location</th><th>Write</th><th>Value</th>
-                            </tr>"""
-        
-        #if (openplc_runtime.status() == "Running"):
-        if (True):
-            mb_port_cfg = flask.request.args.get('mb_port')
-            monitor.start_monitor(int(mb_port_cfg))
+        if modbus_enabled == True:
+            monitor.start_monitor(modbus_port_cfg)
             data_index = 0
             for debug_data in monitor.debug_vars:
                 return_str += '<tr style="height:60px">' # onclick="document.location=\'point-info?table_id=' + str(data_index) + '\'">'
@@ -1604,132 +1522,202 @@ def monitor_update():
                     return_str += str(debug_data.value)
                 return_str += '</tr>'
                 data_index += 1
+            return_str += """
+                    </table>
+                </div>
+                <input type='hidden' id='modbus_port_cfg' name='modbus_port_cfg' value='""" + str(modbus_port_cfg) + "'>"
+            return_str += pages.monitoring_tail
         
-        return_str += """ 
-                        </table>"""
+        #Modbus Server is not enabled
+        else:
+            return_str += """
+                    </table>
+                    <br>
+                    <br>
+                    <h2>You must enable Modbus Server on Settings to be able to monitor your program!</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
         
-        return return_str
+    #Runtime is not running        
+    else:
+        return_str += """
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"""
+
+    return return_str
+        
+@app.route('/monitor-update', methods=['GET', 'POST'])
+@monitor_auth_required
+def monitor_update():
+
+    #if (openplc_runtime.status() == "Compiling"): return 'OpenPLC is compiling new code. Please wait'
+    return_str = """
+                    <table>
+                        <col width="50"><col width="10"><col width="10"><col width="10"><col width="100">
+                        <tr style='background-color: white'>
+                            <th>Point Name</th><th>Type</th><th>Location</th><th>Write</th><th>Value</th>
+                        </tr>"""
+    
+    #if (openplc_runtime.status() == "Running"):
+    if (True):
+        mb_port_cfg = flask.request.args.get('mb_port')
+        monitor.start_monitor(int(mb_port_cfg))
+        data_index = 0
+        for debug_data in monitor.debug_vars:
+            return_str += '<tr style="height:60px">' # onclick="document.location=\'point-info?table_id=' + str(data_index) + '\'">'
+            return_str += '<td>' + debug_data.name + '</td><td>' + debug_data.type + '</td><td>' + debug_data.location + '</td><td>'
+            if (debug_data.location.find('QX') != -1):
+                return_str += '<button class="write-button true" onclick="fetch(\'/point-write?value=1&address=' + str(debug_data.location) + '\')">true</button>'
+                return_str += '<button class="write-button false" onclick="fetch(\'/point-write?value=0&address=' + str(debug_data.location) + '\')">false</button>'
+            return_str += '</td><td valign="middle">'
+            if (debug_data.type == 'BOOL'):
+                if (debug_data.value == 0):
+                    return_str += '<img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</td>'
+                else:
+                    return_str += '<img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</td>'
+            elif (debug_data.type == 'UINT'):
+                percentage = (debug_data.value*100)/65535
+                return_str += '<div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:' + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></td>'
+            elif (debug_data.type == 'INT'):
+                percentage = ((debug_data.value + 32768)*100)/65535
+                debug_data.value = ctypes.c_short(debug_data.value).value
+                return_str += '<div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:' + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></td>'
+            elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
+                return_str += "{:10.4f}".format(debug_data.value)
+            else:
+                return_str += str(debug_data.value)
+            return_str += '</tr>'
+            data_index += 1
+    
+    return_str += """ 
+                    </table>"""
+    
+    return return_str
 
 @app.route('/point-write', methods=['GET', 'POST'])
+@monitor_auth_required
 def point_write():
-    if (flask_login.current_user.is_authenticated == False):
-        return flask.redirect(flask.url_for('login'))
-    else:
-        point_value = flask.request.args.get('value')
-        point_address = flask.request.args.get('address')
-        monitor.write_value(point_address, int(point_value))
-        return ''
+    point_value = flask.request.args.get('value')
+    point_address = flask.request.args.get('address')
+    monitor.write_value(point_address, int(point_value))
+    return ''
 
 @app.route('/point-info', methods=['GET', 'POST'])
+@monitor_auth_required
 def point_info():
-    if (flask_login.current_user.is_authenticated == False):
-        return flask.redirect(flask.url_for('login'))
+    #if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
+    point_id = flask.request.args.get('table_id')
+    debug_data = monitor.debug_vars[int(point_id)]
+    return_str = pages.w3_style + pages.settings_style + draw_top_div()
+    return_str += """
+        <div class='main'>
+            <div class='w3-sidebar w3-bar-block' style='width:250px; background-color:#1F1F1F'>
+                <br>
+                <br>
+                <a href="dashboard" class="w3-bar-item w3-button"><img src="/static/home-icon-64x64.png" alt="Dashboard" style="width:47px;height:32px;padding:0px 15px 0px 0px;float:left"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Dashboard</p></a>
+                <a href='programs' class='w3-bar-item w3-button'><img src='/static/programs-icon-64x64.png' alt='Programs' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Programs</p></a>
+                <a href='modbus' class='w3-bar-item w3-button'><img src='/static/modbus-icon-512x512.png' alt='Modbus' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Slave Devices</p></a>
+                <a href="monitoring" class="w3-bar-item w3-button" style="background-color:#0066FC; padding-right:0px;padding-top:0px;padding-bottom:0px"><img src="/static/monitoring-icon-64x64.png" alt="Monitoring" style="width:47px;height:39px;padding:7px 15px 0px 0px;float:left"><img src="/static/arrow.png" style="width:17px;height:49px;padding:0px 0px 0px 0px;margin: 0px 0px 0px 0px; float:right"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 10px 0px 0px 0px'>Monitoring</p></a>                    
+                <a href='hardware' class='w3-bar-item w3-button'><img src='/static/hardware-icon-980x974.png' alt='Hardware' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Hardware</p></a>
+                <a href='users' class='w3-bar-item w3-button'><img src='/static/users-icon-64x64.png' alt='Users' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Users</p></a>
+                <a href='settings' class='w3-bar-item w3-button'><img src='/static/settings-icon-64x64.png' alt='Settings' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Settings</p></a>
+                <a href='logout' class='w3-bar-item w3-button'><img src='/static/logout-icon-64x64.png' alt='Logout' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Logout</p></a>
+                <br>
+                <br>"""
+    return_str += draw_status()
+    return_str += """
+    </div>
+        <div style="margin-left:320px; margin-right:70px">
+            <div style="w3-container">
+                <br>
+                <h2>Point Details</h2>
+                <br>
+                <div id='monitor_point'>
+                    <input type='hidden' value='""" + point_id + """' id='point_id' name='point_id'/>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Point Name:</b> """ + debug_data.name + """</p>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Type:</b> """ + debug_data.type + """</p>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Location:</b> """ + debug_data.location + "</p>"
+    if (debug_data.type == 'BOOL'):
+        if (debug_data.value == 0):
+            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</p>"""
+        else:
+            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</p>"""
+    elif (debug_data.type == 'UINT'):
+        percentage = (debug_data.value*100)/65535
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
+    elif (debug_data.type == 'INT'):
+        percentage = ((debug_data.value + 32768)*100)/65535
+        debug_data.value = ctypes.c_short(debug_data.value).value
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
+    elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + "{:10.4f}".format(debug_data.value) + "</p>"
     else:
-        #if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
-        point_id = flask.request.args.get('table_id')
-        debug_data = monitor.debug_vars[int(point_id)]
-        return_str = pages.w3_style + pages.settings_style + draw_top_div()
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + str(debug_data.value) + "</p>"
+    
+    return_str += """<br>
+                    <br>
+                </div>
+                <form action="/monitoring" method="post">
+                    <label class="container">
+                        <b>Force Point Value: </b>
+                        <input id="force_checkbox" type="checkbox">
+                        <span class="checkmark"></span>
+                    </label>"""
+    if (debug_data.type == 'BOOL'):
         return_str += """
-            <div class='main'>
-                <div class='w3-sidebar w3-bar-block' style='width:250px; background-color:#1F1F1F'>
-                    <br>
-                    <br>
-                    <a href="dashboard" class="w3-bar-item w3-button"><img src="/static/home-icon-64x64.png" alt="Dashboard" style="width:47px;height:32px;padding:0px 15px 0px 0px;float:left"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Dashboard</p></a>
-                    <a href='programs' class='w3-bar-item w3-button'><img src='/static/programs-icon-64x64.png' alt='Programs' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Programs</p></a>
-                    <a href='modbus' class='w3-bar-item w3-button'><img src='/static/modbus-icon-512x512.png' alt='Modbus' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Slave Devices</p></a>
-                    <a href="monitoring" class="w3-bar-item w3-button" style="background-color:#0066FC; padding-right:0px;padding-top:0px;padding-bottom:0px"><img src="/static/monitoring-icon-64x64.png" alt="Monitoring" style="width:47px;height:39px;padding:7px 15px 0px 0px;float:left"><img src="/static/arrow.png" style="width:17px;height:49px;padding:0px 0px 0px 0px;margin: 0px 0px 0px 0px; float:right"><p style='font-family:"Roboto", sans-serif; font-size:20px; color:white;margin: 10px 0px 0px 0px'>Monitoring</p></a>                    
-                    <a href='hardware' class='w3-bar-item w3-button'><img src='/static/hardware-icon-980x974.png' alt='Hardware' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Hardware</p></a>
-                    <a href='users' class='w3-bar-item w3-button'><img src='/static/users-icon-64x64.png' alt='Users' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Users</p></a>
-                    <a href='settings' class='w3-bar-item w3-button'><img src='/static/settings-icon-64x64.png' alt='Settings' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Settings</p></a>
-                    <a href='logout' class='w3-bar-item w3-button'><img src='/static/logout-icon-64x64.png' alt='Logout' style='width:47px;height:32px;padding:0px 15px 0px 0px;float:left'><p style='font-family:\"Roboto\", sans-serif; font-size:20px; color:white;margin: 2px 0px 0px 0px'>Logout</p></a>
-                    <br>
-                    <br>"""
-        return_str += draw_status()
+                    <select id='forced_value' name='forced_value' style="width:200px;height:30px;font-size: 16px;font-family: 'Roboto', sans-serif;">
+                        <option selected='selected' value='TRUE'>TRUE</option>
+                        <option value='FALSE'>FALSE</option>
+                    </select>"""
+    else:
         return_str += """
-        </div>
-            <div style="margin-left:320px; margin-right:70px">
-                <div style="w3-container">
-                    <br>
-                    <h2>Point Details</h2>
-                    <br>
-                    <div id='monitor_point'>
-                        <input type='hidden' value='""" + point_id + """' id='point_id' name='point_id'/>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Point Name:</b> """ + debug_data.name + """</p>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Type:</b> """ + debug_data.type + """</p>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Location:</b> """ + debug_data.location + "</p>"
-        if (debug_data.type == 'BOOL'):
-            if (debug_data.value == 0):
-                return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</p>"""
-            else:
-                return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</p>"""
-        elif (debug_data.type == 'UINT'):
-            percentage = (debug_data.value*100)/65535
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
-        elif (debug_data.type == 'INT'):
-            percentage = ((debug_data.value + 32768)*100)/65535
-            debug_data.value = ctypes.c_short(debug_data.value).value
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
-        elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + "{:10.4f}".format(debug_data.value) + "</p>"
-        else:
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + str(debug_data.value) + "</p>"
-        
-        return_str += """<br>
-                        <br>
-                    </div>
-                    <form action="/monitoring" method="post">
-                        <label class="container">
-                            <b>Force Point Value: </b>
-                            <input id="force_checkbox" type="checkbox">
-                            <span class="checkmark"></span>
-                        </label>"""
-        if (debug_data.type == 'BOOL'):
-            return_str += """
-                        <select id='forced_value' name='forced_value' style="width:200px;height:30px;font-size: 16px;font-family: 'Roboto', sans-serif;">
-                            <option selected='selected' value='TRUE'>TRUE</option>
-                            <option value='FALSE'>FALSE</option>
-                        </select>"""
-        else:
-            return_str += """
-                        <input type='text' id='forced_value' name='forced_value' style="width:200px;height:30px;font-size: 16px;font-family: 'Roboto', sans-serif;" value='0'>
-                        """
-        return_str += pages.point_info_tail
-        return return_str
+                    <input type='text' id='forced_value' name='forced_value' style="width:200px;height:30px;font-size: 16px;font-family: 'Roboto', sans-serif;" value='0'>
+                    """
+    return_str += pages.point_info_tail
+    return return_str
 
 
 @app.route('/point-update', methods=['GET', 'POST'])
+@monitor_auth_required
 def point_update():
-    if (flask_login.current_user.is_authenticated == False):
-        return flask.redirect(flask.url_for('login'))
-    else:
-        #if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
-        point_id = flask.request.args.get('table_id')
-        debug_data = monitor.debug_vars[int(point_id)]
-        return_str = """
-                        <input type='hidden' value='""" + point_id + """' id='point_id' name='point_id'/>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Point Name:</b> """ + debug_data.name + """</p>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Type:</b> """ + debug_data.type + """</p>
-                        <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Location:</b> """ + debug_data.location + "</p>"
-        if (debug_data.type == 'BOOL'):
-            if (debug_data.value == 0):
-                return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</p>"""
-            else:
-                return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</p>"""
-        elif (debug_data.type == 'UINT'):
-            percentage = (debug_data.value*100)/65535
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
-        elif (debug_data.type == 'INT'):
-            percentage = ((debug_data.value + 32768)*100)/65535
-            debug_data.value = ctypes.c_short(debug_data.value).value
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
-        elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + "{:10.4f}".format(debug_data.value) + "</p>"
+
+    #if (openplc_runtime.status() == "Compiling"): return draw_compiling_page()
+    point_id = flask.request.args.get('table_id')
+    debug_data = monitor.debug_vars[int(point_id)]
+    return_str = """
+                    <input type='hidden' value='""" + point_id + """' id='point_id' name='point_id'/>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Point Name:</b> """ + debug_data.name + """</p>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Type:</b> """ + debug_data.type + """</p>
+                    <p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Location:</b> """ + debug_data.location + "</p>"
+    if (debug_data.type == 'BOOL'):
+        if (debug_data.value == 0):
+            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_false.png" alt="bool_false" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">FALSE</p>"""
         else:
-            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + str(debug_data.value) + "</p>"
-        
-        return_str += """<br>
-                        <br>"""
-        return return_str
+            return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Status:</b> <img src="/static/bool_true.png" alt="bool_true" style="width:40px;height:40px;vertical-align:middle; margin-right:10px">TRUE</p>"""
+    elif (debug_data.type == 'UINT'):
+        percentage = (debug_data.value*100)/65535
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
+    elif (debug_data.type == 'INT'):
+        percentage = ((debug_data.value + 32768)*100)/65535
+        debug_data.value = ctypes.c_short(debug_data.value).value
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b> <div class="w3-grey w3-round" style="height:40px"><div class="w3-container w3-blue w3-round" style="height:40px;width:""" + str(int(percentage)) + '%"><p style="margin-top:10px">' + str(debug_data.value) + '</p></div></div></p>'
+    elif (debug_data.type == 'REAL') or (debug_data.type == 'LREAL'):
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + "{:10.4f}".format(debug_data.value) + "</p>"
+    else:
+        return_str += """<p style='font-family:"Roboto", sans-serif; font-size:16px'><b>Value: </b>""" + str(debug_data.value) + "</p>"
+    
+    return_str += """<br>
+                    <br>"""
+    return return_str
 
 
 
